@@ -31,11 +31,7 @@
   
 .EXAMPLE
 
-crack-keepassfile -binpath "C:\program files (x86)\KeePass2x" -pwdfile "c:\software\pwdlist.txt" -targetfile "c:\software\posh.kdbx"
-
-.TODO
-
-1)allow generated patterns to be used to brute force rather than a dictionary file
+Get-Content -Encoding UTF8 "c:\software\pwdlist.txt" | crack-keepassfile -binpath "C:\Program Files (x86)\KeePass Password Safe 2" -targetfile "c:\software\posh.kdbx"
 
   
 #>
@@ -59,7 +55,6 @@ function Load-KeePassBinaries {
     {
         throw [System.ArgumentException] "Unable Load KeePass Binaries - check path $path"
     }
-    Write-Output "KeePass Binaries loaded from $path"
 }
 
 function try-key($x)
@@ -104,7 +99,6 @@ function crack-keepassfile
         [string]$binpath,
         [Parameter(Mandatory=$true, ValueFromPipeline=$true)]
         [string]$password,
-        [string]$pwdpath,
         [string]$targetfile
     )
     begin
