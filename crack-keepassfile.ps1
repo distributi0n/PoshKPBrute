@@ -41,18 +41,6 @@ crack-keepassfile -binpath "C:\program files (x86)\KeePass2x" -pwdfile "c:\softw
   
 #>
 
-
-
-
-#----------------------------------------------------------[Declarations]----------------------------------------------------------
-
-#blank some key variables just in case
-$passwordList=""
-$Password=""
-
-
-#-----------------------------------------------------------[Functions]------------------------------------------------------------
-
 function Load-KeePassBinarys {
     param(
         [Parameter(Mandatory=$true)]
@@ -193,6 +181,3 @@ function crack-keepassfile{
 
     }
 }
-
-
-#-----------------------------------------------------------[Execution]------------------------------------------------------------
