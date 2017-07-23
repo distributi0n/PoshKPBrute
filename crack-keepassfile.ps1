@@ -58,7 +58,7 @@ function Load-KeePassBinarys {
         [Parameter(Mandatory=$true)]
         [String]$path
     )
-    begin { 
+    begin {
         if((Test-Path $path) –eq $false) 
         {
             Write-Output "The path $path is invalid"
@@ -71,17 +71,10 @@ function Load-KeePassBinarys {
         }
     }
     process {
-        try { 
+        try {
             [Reflection.Assembly]::LoadFile("$path\KeePass.exe")|Out-Null
-        } catch
-        { 
-            Write-Warning "Unable Load KeePass Binarys - check path $path"
-            break
-        }
-        try { 
             [Reflection.Assembly]::LoadFile("$path\KeePass.XmlSerializers.dll")|Out-Null
-        } catch 
-        {
+        } catch {
             Write-Warning  "Unable Load KeePass Binarys - check path $path"
             break
         }
