@@ -102,6 +102,10 @@ process
         Write-Warning "Master Password Found = $password"
         break
     }
+    else
+    {
+        Write-Verbose "Wrong password = $password"
+    }
     $count++
 }
 end
